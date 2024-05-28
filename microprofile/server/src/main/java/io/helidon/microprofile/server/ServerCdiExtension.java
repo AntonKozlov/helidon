@@ -469,15 +469,19 @@ public class ServerCdiExtension implements Extension, Resource {
         }
         webserver = serverBuilder.build();
 
-        try {
-            Core.checkpointRestore();
-        } catch (UnsupportedOperationException e) {
-            LOGGER.log(Level.DEBUG, "CRaC feature is not available", e);
-        } catch (RestoreException e) {
-            LOGGER.log(Level.ERROR, "CRaC restore wasn't successful!", e);
-        } catch (CheckpointException e) {
-            LOGGER.log(Level.ERROR, "CRaC checkpoint creation wasn't successful!", e);
+/*
+        if (Boolean.getBoolean("io.helidon.crac.checkpointAtStart")) {
+            try {
+                Core.checkpointRestore();
+            } catch (UnsupportedOperationException e) {
+                LOGGER.log(Level.DEBUG, "CRaC feature is not available", e);
+            } catch (RestoreException e) {
+                LOGGER.log(Level.ERROR, "CRaC restore wasn't successful!", e);
+            } catch (CheckpointException e) {
+                LOGGER.log(Level.ERROR, "CRaC checkpoint creation wasn't successful!", e);
+            }
         }
+*/
 
         try {
             webserver.start();
@@ -504,7 +508,7 @@ public class ServerCdiExtension implements Extension, Resource {
                 + note + startupTimeReport);
 
         // this is not needed at runtime, collect garbage
-        serverBuilder = null;
+        // serverBuilder = null; -- serverBuilder will be required for afterRestore
         observeBuilder = null;
         routingBuilder = null;
         namedRoutings = null;
@@ -757,8 +761,17 @@ public class ServerCdiExtension implements Extension, Resource {
         return serverNamedRoutingBuilder(routingName);
     }
 
+
+    private boolean checkpointShutdownServer;
+
     @Override
     public void beforeCheckpoint(org.crac.Context<? extends Resource> context) throws Exception {
+        checkpointShutdownServer = Boolean.getBoolean("io.helidon.crac.checkpoint-server-cdi");
+        if (checkpointShutdownServer) {
+            webserver.stop();
+            int delay = Integer.getInteger("io.helidon.crac.checkpoint-delay", 0);
+            Thread.sleep(delay);
+        }
         LOGGER.log(Level.INFO, "Creating CRaC snapshot after "
                 + ManagementFactory.getRuntimeMXBean().getUptime()
                 + "ms of runtime.");
@@ -766,6 +779,10 @@ public class ServerCdiExtension implements Extension, Resource {
 
     @Override
     public void afterRestore(org.crac.Context<? extends Resource> context) throws Exception {
+        if (checkpointShutdownServer) {
+            webserver = serverBuilder.build();
+            webserver.start();
+        }
         cracRestoreTime = System.currentTimeMillis();
         LOGGER.log(Level.INFO, "CRaC snapshot restored!");
     }

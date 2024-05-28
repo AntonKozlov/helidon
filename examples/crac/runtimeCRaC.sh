@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+set -x
+
 #
 # Copyright (c) 2022 Oracle and/or its affiliates.
 #
@@ -33,7 +35,7 @@ then
     echo "=== Pre-starting Helidon MP app ==="
 	  set +e
 	  mkdir -p "/crac-checkpoint/cr"
-    $JAVA_HOME/bin/java -XX:CRaCCheckpointTo=/crac-checkpoint/cr -jar ./*.jar
+    $JAVA_HOME/bin/java -XX:CRaCCheckpointTo=/crac-checkpoint/cr $CHECKPOINT_PROPS -jar ./*.jar 
     set -e
 
     echo "=== CRaC checkpoint created, checking log dump for errors ==="

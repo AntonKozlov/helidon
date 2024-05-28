@@ -61,7 +61,14 @@ import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.INFO;
 import static java.lang.System.Logger.Level.TRACE;
 
-class ServerListener implements ListenerContext {
+/*
+import org.crac.CheckpointException;
+import org.crac.Core;
+import org.crac.Resource;
+import org.crac.RestoreException;
+*/
+
+class ServerListener implements ListenerContext/*, Resource*/ {
     private static final System.Logger LOGGER = System.getLogger(ServerListener.class.getName());
 
     @SuppressWarnings("rawtypes")
@@ -92,6 +99,22 @@ class ServerListener implements ListenerContext {
     private volatile boolean running;
     private volatile int connectedPort;
     private volatile ServerSocket serverSocket;
+
+/*
+    @Override
+    public void beforeCheckpoint(org.crac.Context<? extends Resource> context) throws Exception {
+        serverSocket.stop();
+        int delay = Integer.getInteger("io.helidon.crac.checkpoint-delay", 0);
+        Thread.sleep(delay);
+        LOGGER.log(Level.INFO, "Creating CRaC snapshot after "
+                + ManagementFactory.getRuntimeMXBean().getUptime()
+                + "ms of runtime.");
+    }
+
+    @Override
+    public void afterRestore(org.crac.Context<? extends Resource> context) throws Exception {
+    }
+*/
 
     @SuppressWarnings("unchecked")
     ServerListener(String socketName,
@@ -164,6 +187,8 @@ class ServerListener implements ListenerContext {
                                                         listenerConfig,
                                                         this::activeConnections);
         ith.start();
+
+//        Core.getGlobalContext().register(this);
     }
 
     @Override
